@@ -508,16 +508,9 @@ count_peps_at_fdp_iq <- function(peptide_table, conditions = c("A_", "E_"), fc =
 {
   cols <- colnames(peptide_table)[grepl(paste(conditions, collapse = "|"), colnames(peptide_table))]
   cols <- colnames(peptide_table)[grepl(paste(conditions, collapse = "|"), colnames(peptide_table))]
-  intensity_cols = cols[grepl("Intensity",cols)]
+  intensity_cols <- cols[grepl("MaxLFQ.Intensity",cols)]
   i_cols_a <- intensity_cols[grepl(conditions[1], intensity_cols)]
   i_cols_e <- intensity_cols[grepl(conditions[2], intensity_cols)]
-  
-  peptide_table$quant_count <- apply(peptide_table, 1, function(x) length(which(x %in% c("MBR", "MS/MS"))))
-  peptide_table <- peptide_table %>% 
-    arrange(desc(quant_count)) %>%
-    group_by(Modified.Sequence) %>%
-    slice(1)
-  
   
   peptide_table["A_median"] <- apply(peptide_table[i_cols_a], MARGIN = 1, function(x) mean(log2(x), na.rm=TRUE))
   peptide_table["E_median"] <- apply(peptide_table[i_cols_e], MARGIN = 1, function(x) mean(log2(x), na.rm=TRUE))
@@ -870,7 +863,7 @@ for(i in 1:2)
 
 base_path_iq = "D:/PXD003881_IonStar_SpikeIn/IonQuant_Normed"
 pips = c("_NoPip", "_Pip1", "_Pip2p5", "_Pip5", "_Pip100")
-file_path_iq = "/combined_ion.tsv"
+file_path_iq = "/combined_modified_peptide.tsv"
 
 tp_counts_iq <- c()
 pip_settings_iq <- c()
