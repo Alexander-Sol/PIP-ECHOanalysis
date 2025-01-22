@@ -101,7 +101,7 @@ count_peps_at_fdp <- function(peptide_table, conditions = c("A_", "E_"), fc = 3,
               "peptide_table" = peptide_table[relevant_cols]))
 }
 
-get_fc_hist <- function(results, comp)
+get_fc_hist <- function(results, comp, log2_fc_true)
 {
   e_coli_count <- 0
   if(length(results$true_positives) > 0)
@@ -111,7 +111,7 @@ get_fc_hist <- function(results, comp)
   
   plot <- ggplot(data = results$peptide_table, aes(fill = Organism, x = Log2_fc)) +
     geom_histogram(alpha = 0.2, position = "identity", binwidth = 0.02, show.legend = F) +
-    coord_cartesian(xlim = c(-0.5, 1.75), ylim = c(-10, 350)) +
+    coord_cartesian(xlim = c(-1, 6), ylim = c(-5, 100)) +
     scale_fill_manual(
       name = "Species",
       values = c("Homo sapiens" = "black", "Escherichia coli (strain K12)" = "red"),
@@ -120,7 +120,8 @@ get_fc_hist <- function(results, comp)
     ylab("Number of Peptides") +
     theme_bw() +
     annotate("text", x = 0.8, y = 280, 
-             label = paste0("E. coli peptides \nat 5% FDP: ", e_coli_count))
+             label = paste0("E. coli peptides \nat 5% FDP: ", e_coli_count)) +
+    geom_vline(xintercept = log2_fc_true, color = "red", linewidth = 0.25)
   
   title_size <- 16
   if (grepl("_A_", comp))
@@ -138,7 +139,7 @@ get_fc_hist <- function(results, comp)
   return(plot)
 }
 
-get_fc_hist_pro <- function(results, comp)
+get_fc_hist_pro <- function(results, comp, log2_fc_true)
 {
   e_coli_count <- 0
   if(length(results$true_positives) > 0)
@@ -148,7 +149,7 @@ get_fc_hist_pro <- function(results, comp)
   
   plot <- ggplot(data = results$peptide_table, aes(fill = Organism, x = Log2_fc)) +
     geom_histogram(alpha = 0.2, position = "identity", binwidth = 0.02, show.legend = F) +
-    coord_cartesian(xlim = c(-0.5, 1.75), ylim = c(-5, 100)) +
+    coord_cartesian(xlim = c(-1, 6), ylim = c(-5, 100)) +
     scale_fill_manual(
       name = "Species",
       values = c("Homo sapiens" = "black", "Escherichia coli (strain K12)" = "red"),
@@ -157,7 +158,8 @@ get_fc_hist_pro <- function(results, comp)
     ylab("Number of Peptides") +
     theme_bw() +
     annotate("text", x = 0.8, y = 80, 
-             label = paste0("E. coli proteins \nat 5% FDP: ", e_coli_count))
+             label = paste0("E. coli proteins \nat 5% FDP: ", e_coli_count)) +
+    geom_vline(xintercept = log2_fc_true, color = "red", linewidth = 0.25)
   
   title_size <- 16
   if (grepl("_A_", comp))
@@ -223,10 +225,10 @@ multi_comp_analysis <- function(path, protein_level = F, order_by_fc = F, sanity
       
       if(protein_level)
       {
-        hist_plots[[iter]] <- get_fc_hist_pro(results, comp)
+        hist_plots[[iter]] <- get_fc_hist_pro(results, comp, log2(fc))
       } else
       {
-        hist_plots[[iter]] <- get_fc_hist(results, comp)
+        hist_plots[[iter]] <- get_fc_hist(results, comp, log2(fc))
       }
       
       iter <- iter + 1
@@ -330,7 +332,7 @@ count_peps_at_fdp_mq <- function(peptide_table, conditions = c("A", "E"), fc = 3
               "peptide_table" = peptide_table[relevant_cols]))
 }
 
-get_fc_hist_mq <- function(results, comp)
+get_fc_hist_mq <- function(results, comp, log2_fc_true)
 {
   e_coli_count <- 0
   if(length(results$true_positives) > 0)
@@ -340,7 +342,7 @@ get_fc_hist_mq <- function(results, comp)
   
   plot <- ggplot(data = results$peptide_table, aes(fill = Organism, x = Log2_fc)) +
     geom_histogram(alpha = 0.2, position = "identity", binwidth = 0.02, show.legend = F) +
-    coord_cartesian(xlim = c(-0.5, 1.75), ylim = c(-10, 350)) +
+    coord_cartesian(xlim = c(-1, 6), ylim = c(-5, 100)) +
     scale_fill_manual(
       name = "Species",
       values = c("Human" = "black", "Ecoli" = "red"),
@@ -349,7 +351,8 @@ get_fc_hist_mq <- function(results, comp)
     ylab("Number of Peptides") +
     theme_bw() +
     annotate("text", x = 0.8, y = 280, 
-             label = paste0("E. coli peptides \nat 5% FDP: ", e_coli_count))
+             label = paste0("E. coli peptides \nat 5% FDP: ", e_coli_count)) +
+    geom_vline(xintercept = log2_fc_true, color = "red", linewidth = 0.25)
   
   title_size <- 16
   if (grepl("A", comp))
@@ -367,7 +370,7 @@ get_fc_hist_mq <- function(results, comp)
   return(plot)
 }
 
-get_fc_hist_pro_mq <- function(results, comp)
+get_fc_hist_pro_mq <- function(results, comp, log2_fc_true)
 {
   e_coli_count <- 0
   if(length(results$true_positives) > 0)
@@ -377,7 +380,7 @@ get_fc_hist_pro_mq <- function(results, comp)
   
   plot <- ggplot(data = results$peptide_table, aes(fill = Organism, x = Log2_fc)) +
     geom_histogram(alpha = 0.2, position = "identity", binwidth = 0.02, show.legend = F) +
-    coord_cartesian(xlim = c(-0.5, 1.75), ylim = c(-5, 100)) +
+    coord_cartesian(xlim = c(-1, 6), ylim = c(-5, 100)) +
     scale_fill_manual(
       name = "Species",
       values = c("Human" = "black", "Ecoli" = "red"),
@@ -386,7 +389,8 @@ get_fc_hist_pro_mq <- function(results, comp)
     ylab("Number of Peptides") +
     theme_bw() +
     annotate("text", x = 0.8, y = 80, 
-             label = paste0("E. coli proteins \nat 5% FDP: ", e_coli_count))
+             label = paste0("E. coli proteins \nat 5% FDP: ", e_coli_count)) +
+    geom_vline(xintercept = log2_fc_true, color = "red", linewidth = 0.25)
   
   title_size <- 16
   if (grepl("Av", comp))
@@ -455,10 +459,10 @@ multi_comp_analysis_mq <- function(path, protein_level = F, order_by_fc = F, san
       
       if(protein_level)
       {
-        hist_plots[[iter]] <- get_fc_hist_pro_mq(results, comp)
+        hist_plots[[iter]] <- get_fc_hist_pro_mq(results, comp, log2(fc))
       } else
       {
-        hist_plots[[iter]] <- get_fc_hist_mq(results, comp)
+        hist_plots[[iter]] <- get_fc_hist_mq(results, comp, log2(fc))
       }
       
       iter <- iter + 1
@@ -548,7 +552,7 @@ count_peps_at_fdp_iq <- function(peptide_table, conditions = c("A_", "E_"), fc =
               "peptide_table" = peptide_table[relevant_cols]))
 }
 
-get_fc_hist_iq <- function(results, comp)
+get_fc_hist_iq <- function(results, comp, log2_fc_true)
 {
   e_coli_count <- 0
   if(length(results$true_positives) > 0)
@@ -558,7 +562,7 @@ get_fc_hist_iq <- function(results, comp)
   
   plot <- ggplot(data = results$peptide_table, aes(fill = Organism, x = Log2_fc)) +
     geom_histogram(alpha = 0.2, position = "identity", binwidth = 0.02, show.legend = F) +
-    coord_cartesian(xlim = c(-1, 4), ylim = c(-10, 200)) +
+    coord_cartesian(xlim = c(-1, 6), ylim = c(-5, 100)) +
     scale_fill_manual(
       name = "Species",
       values = c("Homo sapiens" = "black", "Escherichia coli (strain K12)" = "red"),
@@ -567,7 +571,8 @@ get_fc_hist_iq <- function(results, comp)
     ylab("Number of Peptides") +
     theme_bw() +
     annotate("text", x = 2, y = 150, 
-             label = paste0("E. coli peptides \nat 5% FDP: ", e_coli_count))
+             label = paste0("E. coli peptides \nat 5% FDP: ", e_coli_count)) +
+    geom_vline(xintercept = log2_fc_true, color = "red", linewidth = 0.25)
   
   title_size <- 16
   if (grepl("A_", comp))
@@ -635,7 +640,7 @@ multi_comp_iq_pep <- function(ion_path, order_by_fc = F)
       results$peptide_table$Condition <- comp
       combined_pep_table <- rbind(combined_pep_table, results$peptide_table)
       
-      hist_plots[[iter]] <- get_fc_hist_iq(results, comp)
+      hist_plots[[iter]] <- get_fc_hist_iq(results, comp, log2(fc))
       iter <- iter + 1
     }
   }
@@ -1079,7 +1084,7 @@ count_pros_at_fdp_iq <- function(peptide_table, conditions = c("A_", "E_"), fc =
               "peptide_table" = peptide_table[relevant_cols]))
 }
 
-get_fc_hist_iq_pro <- function(results, comp)
+get_fc_hist_iq_pro <- function(results, comp, log2_fc_true)
 {
   e_coli_count <- 0
   if(length(results$true_positives) > 0)
@@ -1089,7 +1094,7 @@ get_fc_hist_iq_pro <- function(results, comp)
   
   plot <- ggplot(data = results$peptide_table, aes(fill = Organism, x = Log2_fc)) +
     geom_histogram(alpha = 0.2, position = "identity", binwidth = 0.02, show.legend = F) +
-    coord_cartesian(xlim = c(-1, 6), ylim = c(-2, 50)) +
+    coord_cartesian(xlim = c(-1, 6), ylim = c(-5, 100)) +
     scale_fill_manual(
       name = "Species",
       values = c("Homo sapiens" = "black", "Escherichia coli (strain K12)" = "red"),
@@ -1098,8 +1103,9 @@ get_fc_hist_iq_pro <- function(results, comp)
     ylab("Number of Proteins") +
     theme_bw() +
     annotate("text", x = 4, y = 25, 
-             label = paste0("E. coli proteins \nat 5% FDP: ", e_coli_count))
-  
+             label = paste0("E. coli proteins \nat 5% FDP: ", e_coli_count)) +
+    geom_vline(xintercept = log2_fc_true, color = "red", linewidth = 0.25)
+
   title_size <- 16
   if (grepl("A_", comp))
   {
@@ -1165,7 +1171,7 @@ multi_comp_iq <- function(ion_path, protein_level = T)
       results$peptide_table$Condition <- comp
       combined_pep_table <- rbind(combined_pep_table, results$peptide_table)
       
-      hist_plots[[iter]] <- get_fc_hist_iq_pro(results, comp)
+      hist_plots[[iter]] <- get_fc_hist_iq_pro(results, comp, log2(fc))
       iter <- iter + 1
     }
   }
