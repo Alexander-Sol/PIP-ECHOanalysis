@@ -271,7 +271,7 @@ multi_comp_analysis <- function(path, protein_level = F, order_by_fc = F, sanity
 }
 
 # MaxQuant Functions ----
-count_peps_at_fdp_mq <- function(peptide_table, conditions = c("A", "E"), fc = 3, fdp = 0.05, order_by_fc = F, sanity_check = F,
+count_peps_at_fdp_mq <- function(peptide_table, conditions = c("A", "E"), fc = 3, fdp = 0.05, 
                                  protein_level = F)
 {
   cols <- colnames(peptide_table)[grepl(paste(conditions, collapse = "|"), colnames(peptide_table))]
@@ -285,13 +285,9 @@ count_peps_at_fdp_mq <- function(peptide_table, conditions = c("A", "E"), fc = 3
   i_cols_a <- intensity_cols[grepl(conditions[1], intensity_cols)]
   i_cols_e <- intensity_cols[grepl(conditions[2], intensity_cols)]
   
-  # Mix them up such that the expected number of discoveries is zero
-  if(sanity_check)
-  {
-    temp <- i_cols_a[c(3,4)]
-    i_cols_a[c(3,4)] <- i_cols_e[c(3,4)]
-    i_cols_e[c(3,4)] <- temp
-  }
+  peptide_table <- peptide_table[c("Organism", intensity_cols)]
+  
+  peptide_table[peptide_table == 0] <- NA
   
   peptide_table["A_median"] <- apply(peptide_table[i_cols_a], MARGIN = 1, function(x) mean(log2(x), na.rm=TRUE))
   peptide_table["E_median"] <- apply(peptide_table[i_cols_e], MARGIN = 1, function(x) mean(log2(x), na.rm=TRUE))
@@ -299,14 +295,7 @@ count_peps_at_fdp_mq <- function(peptide_table, conditions = c("A", "E"), fc = 3
   peptide_table <- peptide_table[!is.na(peptide_table$Log2_fc),]
   peptide_table["Log2_fc_delta"] <- abs(peptide_table$Log2_fc - log2(fc))
   
-  if(order_by_fc)
-  {
-    peptide_table <- peptide_table[order(peptide_table$Log2_fc, decreasing = TRUE),]
-  } else
-  {
-    peptide_table <- peptide_table[order(peptide_table$Log2_fc_delta, decreasing = FALSE),]
-  }
-  
+  peptide_table <- peptide_table[order(peptide_table$Log2_fc_delta, decreasing = FALSE),]
   
   peptide_table <- within(peptide_table, e_coli_cumsum <- cumsum(Organism == "Ecoli"))
   peptide_table <- within(peptide_table, human_cumsum <- cumsum(Organism == "Human"))
@@ -404,14 +393,14 @@ get_fc_hist_pro_mq <- function(results, comp)
   return(plot)
 }
 
-multi_comp_analysis_mq <- function(path, protein_level = F, order_by_fc = F, sanity_check = F)
+multi_comp_analysis_mq <- function(path, protein_level = F)
 {
   peptides <- read.table(path, sep = '\t', header = T)
   pep_table<- subset(peptides, Organism %in% 
                        c("Ecoli", 
                          "Human"))
   
-  all_conditions <- c("A", "B", "C", "D", "E")
+  all_conditions <- c("\\.A", "\\.B", "\\.C", "\\.D", "\\.E" )
   spike_in_levels <- c(1, 1.5, 2, 2.5, 3)
   deltas <- c()
   tps <- c()
@@ -431,8 +420,6 @@ multi_comp_analysis_mq <- function(path, protein_level = F, order_by_fc = F, san
       results <- count_peps_at_fdp_mq(pep_table, conditions = c(all_conditions[k], all_conditions[y]), 
                                       fc = fc,
                                       fdp = 0.05,
-                                      order_by_fc = order_by_fc,
-                                      sanity_check = sanity_check,
                                       protein_level = protein_level)
       comp = paste0(all_conditions[k], "vs.", all_conditions[y])
       if(length(results$fc_delta) == 0)
@@ -507,23 +494,23 @@ multi_comp_analysis_mq <- function(path, protein_level = F, order_by_fc = F, san
 count_peps_at_fdp_iq <- function(peptide_table, conditions = c("A_", "E_"), fc = 3, fdp = 0.05, order_by_fc = F)
 {
   cols <- colnames(peptide_table)[grepl(paste(conditions, collapse = "|"), colnames(peptide_table))]
-  cols <- colnames(peptide_table)[grepl(paste(conditions, collapse = "|"), colnames(peptide_table))]
   intensity_cols = cols[grepl("Intensity",cols)]
   i_cols_a <- intensity_cols[grepl(conditions[1], intensity_cols)]
   i_cols_e <- intensity_cols[grepl(conditions[2], intensity_cols)]
   
-  peptide_table$quant_count <- apply(peptide_table, 1, function(x) length(which(x %in% c("MBR", "MS/MS"))))
-  peptide_table <- peptide_table %>% 
-    arrange(desc(quant_count)) %>%
-    group_by(Modified.Sequence) %>%
-    slice(1)
-  
-  
+  peptide_table[peptide_table == 0] <- NA
   peptide_table["A_median"] <- apply(peptide_table[i_cols_a], MARGIN = 1, function(x) mean(log2(x), na.rm=TRUE))
   peptide_table["E_median"] <- apply(peptide_table[i_cols_e], MARGIN = 1, function(x) mean(log2(x), na.rm=TRUE))
   peptide_table["Log2_fc"] <- peptide_table["E_median"] - peptide_table["A_median"]
   peptide_table <- peptide_table[!is.na(peptide_table$Log2_fc),]
   peptide_table["Log2_fc_delta"] <- abs(peptide_table$Log2_fc - log2(fc))
+  
+  # remove duplicates (smae peptide, different charges)
+  peptide_table$quant_count <- apply(peptide_table, 1, function(x) length(which(x %in% c("MBR", "MS/MS"))))
+  peptide_table <- peptide_table %>% 
+    arrange(desc(quant_count)) %>%
+    group_by(Modified.Sequence) %>%
+    slice_head(n=1)
   
   if(order_by_fc)
   {
@@ -533,26 +520,20 @@ count_peps_at_fdp_iq <- function(peptide_table, conditions = c("A_", "E_"), fc =
     peptide_table <- peptide_table[order(peptide_table$Log2_fc_delta, decreasing = FALSE),]
   }
   
-  
   peptide_table <- within(peptide_table, e_coli_cumsum <- cumsum(Organism == "Escherichia coli (strain K12)"))
   peptide_table <- within(peptide_table, human_cumsum <- cumsum(Organism == "Homo sapiens"))
   peptide_table$FDP <- peptide_table$human_cumsum / (peptide_table$human_cumsum + peptide_table$e_coli_cumsum)
   
-  last_rows <- which(peptide_table$FDP <= fdp, arr.ind = T)
-  last_index = 1
-  if(length(last_rows) > 0) 
-  { 
-    last_index = max(last_rows)
-  }
-  pruned_peptide_table <- peptide_table[1:last_index, ]
+  pruned_peptide_table <- peptide_table[peptide_table$FDP <= fdp, ]
   
   fc_delta =  pruned_peptide_table$Log2_fc_delta %>% tail(n=1)
   e_coli_count =  pruned_peptide_table$e_coli_cumsum %>% tail(n=1)
+  if(length(e_coli_count) == 0) e_coli_count = 0
   
   relevant_cols <- c("Organism", "Log2_fc", "Log2_fc_delta")
   
   return(list("fc_delta" = fc_delta, "true_positives" = e_coli_count,
-              "peptide_table" = peptide_table[relevant_cols]))
+              "peptide_table" = peptide_table))
 }
 
 get_fc_hist_iq <- function(results, comp)
@@ -687,7 +668,7 @@ base_path = "D:/..."
 donors = c("Donor02", "Donor05","Donor1")
 pips = c("_Pip1", "_Pip2p5", "_Pip5", "_Pip100")
 
-base_out_dir <- r"(C:\Users\Alex\Source\Repos\MBR_metamorpheus\figures\MockFigures\R_Plots\Peptide_Level_10_25_24\)"
+base_out_dir <- r"(C:\Users\Alex\Source\Repos\MBR_metamorpheus\figures\MockFigures\R_Plots\NewAnalysis\)"
 dir.create(base_out_dir, showWarnings = FALSE)
 
 # PIP-ECHO + FlashLFQ - Count MBR Results by Analysis Settings ----
@@ -894,8 +875,10 @@ tp_counts_iq
 
 # Peptide level MaxQuant Analysis ----
 
-mq_pep_paths <- c(r"(D:\PXD003881_IonStar_SpikeIn\combined_no_MBR_IonStar\txt\peptides_with_organisms.txt)",
-                  r"(D:\PXD003881_IonStar_SpikeIn\txt_MQ_ionQuant_spikeIn\peptides_with_organisms.txt)")
+mq_pep_paths = c(r"(D:\PXD003881_IonStar_SpikeIn\ReviewerResponse\MaxQuant_no_MBR_Ionstar\txt\peptides_Organism.txt)",
+                 r"(D:\PXD003881_IonStar_SpikeIn\ReviewerResponse\MaxQuant_w_MBR_Ionstar\txt\peptides_Organism.txt)")
+mq_conditions <- c("\\.A", "\\.B", "\\.C", "\\.D", "\\.E" )
+spike_in_levels <- c(1, 1.5, 2, 2.5, 3)
 
 mq_settings <- c("No PIP", "100")
 tp_counts_mq <- c()
